@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { Telegraf } from 'telegraf';
-import { getAllMonitors, Monitor } from './db';
+import { getAllMonitors, Monitor, updateLastAlerted } from './db';
 import { getBalance } from './aptos';
 
 export const initScheduler = (bot: Telegraf) => {
@@ -29,7 +29,14 @@ export const initScheduler = (bot: Telegraf) => {
                     const balance = await getBalance(address);
 
                     for (const monitor of monitorList) {
-                        if (balance < monitor.threshold) {
+                        // Check if we already alerted recently (e.g., within the last 50 minutes to be safe for hourly cron)
+                        const lastAlerted = monitor.last_alerted_at ? new Date(monitor.last_alerted_at) : null;
+                        const now = new Date();
+                        const timeSinceLastAlert = lastAlerted ? now.getTime() - lastAlerted.getTime() : Infinity;
+                        const ONE_HOUR_MS = 60 * 60 * 1000;
+                        const MIN_ALERT_INTERVAL = ONE_HOUR_MS - (10 * 60 * 1000); // 50 minutes
+
+                        if (balance < monitor.threshold && timeSinceLastAlert > MIN_ALERT_INTERVAL) {
                             const message = `⚠️ *Low Balance Alert* ⚠️\n\n` +
                                 `Chain: ${monitor.chain}\n` +
                                 `Address: \`${address}\`\n` +
@@ -39,6 +46,8 @@ export const initScheduler = (bot: Telegraf) => {
 
                             try {
                                 await bot.telegram.sendMessage(monitor.chat_id, message, { parse_mode: 'Markdown' });
+                                await updateLastAlerted(monitor.id);
+                                console.log(`Alert sent to ${monitor.chat_id} for ${address}`);
                             } catch (err) {
                                 console.error(`Failed to send alert to ${monitor.chat_id}:`, err);
                             }

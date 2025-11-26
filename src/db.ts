@@ -23,6 +23,7 @@ export interface Monitor {
     threshold: number;
     name?: string;
     created_at: string;
+    last_alerted_at?: string | null;
 }
 
 export const addMonitor = async (
@@ -106,4 +107,13 @@ export const getMonitor = async (
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "Row not found"
     return data as Monitor | null;
+};
+
+export const updateLastAlerted = async (id: number): Promise<void> => {
+    const { error } = await supabase
+        .from('monitors')
+        .update({ last_alerted_at: new Date().toISOString() })
+        .eq('id', id);
+
+    if (error) throw error;
 };

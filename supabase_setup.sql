@@ -21,3 +21,7 @@ alter table monitors enable row level security;
 create policy "Enable read access for all users" on monitors for select using (true);
 create policy "Enable insert for all users" on monitors for insert with check (true);
 create policy "Enable delete for all users" on monitors for delete using (true);
+
+-- Migration: Add last_alerted_at column
+-- Run this if you already have the table created
+-- alter table monitors add column last_alerted_at timestamp with time zone;
