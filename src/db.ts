@@ -8,7 +8,7 @@ const supabaseKey = process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseKey || supabaseUrl === 'PLACEHOLDER') {
     console.error('❌ Supabase credentials missing in .env');
-    // We don't exit here to allow the verify script to run and show the error gracefully,
+    // We don't exit here to allow the app to run and show the error gracefully,
     // or we could throw. For now, let's just log.
 }
 
@@ -18,24 +18,38 @@ export interface Monitor {
     id: number;
     chat_id: string;
     address: string;
+    chain: string;
+    token_address: string | null;
     threshold: number;
     name?: string;
     created_at: string;
 }
 
-export const addMonitor = async (chatId: string, address: string, threshold: number = 10, name?: string): Promise<void> => {
+export const addMonitor = async (
+    chatId: string,
+    address: string,
+    threshold: number = 10,
+    chain: string = 'aptos',
+    tokenAddress: string | null = null,
+    name?: string
+): Promise<void> => {
     const { error } = await supabase
         .from('monitors')
-        .insert({ chat_id: chatId, address, threshold, name });
+        .insert({ chat_id: chatId, address, threshold, chain, token_address: tokenAddress, name });
 
     if (error) throw error;
 };
 
-export const removeMonitor = async (chatId: string, address: string): Promise<void> => {
+export const removeMonitor = async (
+    chatId: string,
+    address: string,
+    chain: string = 'aptos',
+    tokenAddress: string | null = null
+): Promise<void> => {
     const { error } = await supabase
         .from('monitors')
         .delete()
-        .match({ chat_id: chatId, address });
+        .match({ chat_id: chatId, address, chain, token_address: tokenAddress });
 
     if (error) throw error;
 };
@@ -59,11 +73,16 @@ export const getAllMonitors = async (): Promise<Monitor[]> => {
     return data as Monitor[];
 };
 
-export const getMonitor = async (chatId: string, address: string): Promise<Monitor | null> => {
+export const getMonitor = async (
+    chatId: string,
+    address: string,
+    chain: string = 'aptos',
+    tokenAddress: string | null = null
+): Promise<Monitor | null> => {
     const { data, error } = await supabase
         .from('monitors')
         .select('*')
-        .match({ chat_id: chatId, address })
+        .match({ chat_id: chatId, address, chain, token_address: tokenAddress })
         .single();
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "Row not found"

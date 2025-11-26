@@ -31,6 +31,7 @@ export const initScheduler = (bot: Telegraf) => {
                     for (const monitor of monitorList) {
                         if (balance < monitor.threshold) {
                             const message = `⚠️ *Low Balance Alert* ⚠️\n\n` +
+                                `Chain: ${monitor.chain}\n` +
                                 `Address: \`${address}\`\n` +
                                 `Current Balance: ${balance} APT\n` +
                                 `Threshold: ${monitor.threshold} APT\n\n` +
