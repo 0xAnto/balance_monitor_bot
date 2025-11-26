@@ -46,10 +46,20 @@ export const removeMonitor = async (
     chain: string = 'aptos',
     tokenAddress: string | null = null
 ): Promise<void> => {
-    const { error } = await supabase
+    let query = supabase
         .from('monitors')
         .delete()
-        .match({ chat_id: chatId, address, chain, token_address: tokenAddress });
+        .eq('chat_id', chatId)
+        .eq('address', address)
+        .eq('chain', chain);
+
+    if (tokenAddress) {
+        query = query.eq('token_address', tokenAddress);
+    } else {
+        query = query.is('token_address', null);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
 };
@@ -79,11 +89,20 @@ export const getMonitor = async (
     chain: string = 'aptos',
     tokenAddress: string | null = null
 ): Promise<Monitor | null> => {
-    const { data, error } = await supabase
+    let query = supabase
         .from('monitors')
         .select('*')
-        .match({ chat_id: chatId, address, chain, token_address: tokenAddress })
-        .single();
+        .eq('chat_id', chatId)
+        .eq('address', address)
+        .eq('chain', chain);
+
+    if (tokenAddress) {
+        query = query.eq('token_address', tokenAddress);
+    } else {
+        query = query.is('token_address', null);
+    }
+
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "Row not found"
     return data as Monitor | null;

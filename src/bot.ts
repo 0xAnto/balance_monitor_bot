@@ -11,6 +11,8 @@ export const initBot = (token: string) => {
         ctx.reply(
             'Welcome to the Aptos Balance Monitor Bot! 🤖\n\n' +
             'Commands:\n' +
+            '/monitor [chain] <address> [threshold] - Monitor an address (default chain: aptos, threshold: 10 APT)\n' +
+            '/list - List all monitored addresses\n' +
             '/delete [chain] <address> - Stop monitoring an address',
             Markup.keyboard([
                 ['📋 List', '❓ Help']
@@ -37,18 +39,20 @@ export const initBot = (token: string) => {
         let address: string;
         let threshold = 10;
 
+        const arg0 = args[0].toLowerCase();
+
         // Check if first argument is a valid address (starts with 0x)
-        if (args[0].startsWith('0x')) {
+        if (arg0.startsWith('0x')) {
             // Format: /monitor <address> [threshold]
-            address = args[0];
+            address = arg0;
             threshold = args[1] ? parseFloat(args[1]) : 10;
         } else {
             // Format: /monitor <chain> <address> [threshold]
-            chain = args[0].toLowerCase();
+            chain = arg0;
             if (args.length < 2) {
                 return ctx.reply('Usage: /monitor [chain] <address> [threshold]\n\nExample:\n/monitor 0x1 10\n/monitor aptos 0x1 10');
             }
-            address = args[1];
+            address = args[1].toLowerCase();
             threshold = args[2] ? parseFloat(args[2]) : 10;
         }
 
@@ -106,16 +110,18 @@ export const initBot = (token: string) => {
         let chain = 'aptos';
         let address: string;
 
-        if (args[0].startsWith('0x')) {
+        const arg0 = args[0].toLowerCase();
+
+        if (arg0.startsWith('0x')) {
             // Format: /delete <address>
-            address = args[0];
+            address = arg0;
         } else {
             // Format: /delete <chain> <address>
-            chain = args[0].toLowerCase();
+            chain = arg0;
             if (args.length < 2) {
                 return ctx.reply('Usage: /delete [chain] <address>\n\nExample:\n/delete 0x1\n/delete aptos 0x1');
             }
-            address = args[1];
+            address = args[1].toLowerCase();
         }
 
         try {
