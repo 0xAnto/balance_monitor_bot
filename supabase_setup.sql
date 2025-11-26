@@ -21,3 +21,17 @@ alter table monitors enable row level security;
 create policy "Enable read access for all users" on monitors for select using (true);
 create policy "Enable insert for all users" on monitors for insert with check (true);
 create policy "Enable delete for all users" on monitors for delete using (true);
+
+-- API Keys Table
+create table api_keys (
+  key text primary key,
+  used_by text unique, -- chat_id of the user who redeemed it
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- RLS for api_keys
+alter table api_keys enable row level security;
+create policy "Enable read access for all users" on api_keys for select using (true);
+create policy "Enable update for all users" on api_keys for update using (true);
+create policy "Enable insert for all users" on api_keys for insert with check (true);
+

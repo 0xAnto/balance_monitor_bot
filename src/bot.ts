@@ -1,5 +1,5 @@
 import { Telegraf, Context, Markup } from 'telegraf';
-import { addMonitor, removeMonitor, getMonitorsForChat } from './db';
+import { addMonitor, removeMonitor, getMonitorsForChat, isUserAuthorized, redeemApiKey } from './db';
 import { isValidAddress, getBalance } from './aptos';
 
 const SUPPORTED_CHAINS = ['aptos'];
@@ -7,7 +7,38 @@ const SUPPORTED_CHAINS = ['aptos'];
 export const initBot = (token: string) => {
     const bot = new Telegraf(token);
 
-    bot.command('start', (ctx) => {
+    bot.use(async (ctx, next) => {
+        if (!ctx.chat) return next();
+
+        const chatId = ctx.chat.id.toString();
+        const isAuthorized = await isUserAuthorized(chatId);
+
+        if (isAuthorized) {
+            return next();
+        }
+
+        // Check if user is trying to redeem a key
+        if (ctx.message && 'text' in ctx.message) {
+            const text = ctx.message.text.trim();
+            // Simple heuristic: keys are likely not commands (unless they start with / which is unlikely for a key)
+            // But let's just try to redeem anything that's not a command if they are unauthorized.
+            // Actually, let's just try to redeem whatever they send if they are not authorized.
+
+            if (await redeemApiKey(text, chatId)) {
+                await ctx.reply('🎉 Access granted! You can now use the bot.');
+                return next();
+            }
+        }
+
+        // If we are here, user is not authorized and didn't provide a valid key
+        await ctx.reply('🔒 Access restricted. Please provide a valid API key to use this bot.\nContact the admin to get a key.');
+    });
+
+    bot.command('start', async (ctx) => {
+        // The middleware handles the auth check. If we get here, we are authorized (or just became authorized).
+        // However, if the user JUST redeemed a key, the middleware called next(), so we fall through to here.
+        // But if they were already authorized, we also get here.
+
         ctx.reply(
             'Welcome to the Aptos Balance Monitor Bot! 🤖\n\n' +
             'Commands:\n' +

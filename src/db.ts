@@ -107,3 +107,41 @@ export const getMonitor = async (
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "Row not found"
     return data as Monitor | null;
 };
+
+export const isUserAuthorized = async (chatId: string): Promise<boolean> => {
+    const { data, error } = await supabase
+        .from('api_keys')
+        .select('key')
+        .eq('used_by', chatId)
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error('Error checking authorization:', error);
+        return false;
+    }
+
+    return !!data;
+};
+
+export const redeemApiKey = async (key: string, chatId: string): Promise<boolean> => {
+    // Check if key exists and is unused
+    const { data: keyData, error: keyError } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('key', key)
+        .single();
+
+    if (keyError || !keyData) return false;
+    if (keyData.used_by) return false; // Already used
+
+    // Update the key with the user's chat_id
+    const { error: updateError } = await supabase
+        .from('api_keys')
+        .update({ used_by: chatId })
+        .eq('key', key);
+
+    if (updateError) return false;
+
+    return true;
+};
+
